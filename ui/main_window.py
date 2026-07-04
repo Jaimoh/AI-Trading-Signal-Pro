@@ -5,6 +5,7 @@ from PySide6.QtWidgets import (
     QVBoxLayout,
     QStatusBar,
 )
+from ui.dashboard import Dashboard
 from PySide6.QtCore import Qt
 
 
@@ -34,16 +35,7 @@ class MainWindow(QMainWindow):
             padding: 20px;
         """)
 
-        # Subtitle
-        subtitle = QLabel("Welcome! Our dashboard is under construction.")
-        subtitle.setAlignment(Qt.AlignCenter)
-        subtitle.setStyleSheet("""
-            font-size: 16px;
-            color: gray;
-        """)
-
-        layout.addWidget(title)
-        layout.addWidget(subtitle)
+        layout.addWidget(Dashboard())
 
         central_widget.setLayout(layout)
 
