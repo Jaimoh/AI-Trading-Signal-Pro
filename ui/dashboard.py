@@ -1,4 +1,7 @@
-import random
+from services.market_data import get_market_data
+
+from datetime import datetime
+import time
 
 from PySide6.QtWidgets import (
     QWidget,
@@ -9,7 +12,7 @@ from PySide6.QtWidgets import (
     QComboBox,
     QPushButton,
 )
-from PySide6.QtCore import Qt
+from PySide6.QtCore import Qt, QTimer
 
 class Dashboard(QWidget):
     def __init__(self):
@@ -69,6 +72,26 @@ class Dashboard(QWidget):
         toolbar.addWidget(refresh_button)
 
         main_layout.addLayout(toolbar)
+        status_layout = QHBoxLayout()
+
+        self.connection_label = QLabel("🟢 Connected")
+        self.connection_label.setStyleSheet("""
+color:lightgreen;
+font-size:14px;
+font-weight:bold;
+""")
+
+        self.clock_label = QLabel()
+        self.clock_label.setStyleSheet("""
+        color:white;
+        font-size:14px;
+        """)
+
+        status_layout.addWidget(self.connection_label)
+        status_layout.addStretch()
+        status_layout.addWidget(self.clock_label)
+
+        main_layout.addLayout(status_layout)
 
         # Dashboard cards
         cards_layout = QHBoxLayout()
@@ -86,9 +109,57 @@ class Dashboard(QWidget):
         cards_layout.addWidget(signal_card)
 
         main_layout.addLayout(cards_layout)
+        # =========================
+# Chart Area
+# =========================
+
+        chart_frame = QFrame()
+
+        chart_frame.setStyleSheet("""
+         QFrame{
+              background-color:#252526;
+             border:2px solid #3E3E42;
+             border-radius:12px;
+        }
+            """)
+
+        chart_layout = QVBoxLayout()
+
+        chart_title = QLabel("Live Price Chart")
+        chart_title.setAlignment(Qt.AlignCenter)
+
+        chart_title.setStyleSheet("""
+        font-size:18px;
+        font-weight:bold;
+        color:white;
+        padding:10px;
+        """)
+
+        chart_placeholder = QLabel("📈 Chart Coming Soon...")
+        chart_placeholder.setAlignment(Qt.AlignCenter)
+
+        chart_placeholder.setStyleSheet("""
+        font-size:20px;
+        color:gray;
+        """)
+
+        chart_layout.addWidget(chart_title)
+        chart_layout.addStretch()
+        chart_layout.addWidget(chart_placeholder)
+        chart_layout.addStretch()
+
+        chart_frame.setLayout(chart_layout)
+        main_layout.addWidget(chart_frame)
         self.setStyleSheet("""
-background-color: #1E1E1E;
-""")
+        background-color: #1E1E1E;
+     """)
+        self.timer = QTimer()
+
+        self.timer.timeout.connect(self.update_clock)
+
+        self.timer.start(1000)
+
+        self.update_clock()
 
         self.setLayout(main_layout)
 
@@ -119,25 +190,23 @@ background-color: #1E1E1E;
         """)
 
         layout.addWidget(title_label)
-        layout.addWidget(value_label)
+        layout.addWidget(value_label) 
   
         card.setLayout(layout)
         return card, value_label
     def refresh_dashboard(self):
+         self.connection_label.setText("🟡 Updating...")
+         
+         price, rsi, ema, signal = get_market_data()
+        
 
-     price = round(random.uniform(1.17000, 1.18000), 5)
+         self.price_label.setText(str(price))
+         self.rsi_label.setText(str(rsi))
+         self.ema_label.setText(str(ema))
+         self.signal_label.setText(signal)
+         self.connection_label.setText("🟢 Connected")
+    def update_clock(self):
 
-     rsi = round(random.uniform(20, 80), 1)
+        current_time = datetime.now().strftime("%H:%M:%S")
 
-     ema = round(random.uniform(1.17000, 1.18000), 5)
-
-     signal = random.choice([
-        "🟢 BUY",
-        "🔴 SELL",
-        "🟡 HOLD"
-     ])
-
-     self.price_label.setText(str(price))
-     self.rsi_label.setText(str(rsi))
-     self.ema_label.setText(str(ema))
-     self.signal_label.setText(signal)
+        self.clock_label.setText(f"🕒 {current_time}")

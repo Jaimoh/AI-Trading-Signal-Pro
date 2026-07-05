@@ -42,4 +42,3 @@ class MainWindow(QMainWindow):
         # Status bar
         status = QStatusBar()
         status.showMessage("Ready")
-        self.setStatusBar(status)
