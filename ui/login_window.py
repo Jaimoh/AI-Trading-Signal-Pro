@@ -1,3 +1,8 @@
+
+from ui.register_window import RegisterWindow
+from ui.main_window import MainWindow
+from PySide6.QtWidgets import QMessageBox
+import services.auth_service as auth_service
 from PySide6.QtWidgets import (
     QWidget,
     QLabel,
@@ -43,13 +48,29 @@ class LoginWindow(QWidget):
         layout.addWidget(self.password)
         layout.addWidget(self.login_button)
         layout.addWidget(self.register_button)
-        self.login_button.clicked.connect(self.login)
+        self.login_button.clicked.connect(self.handle_login)
+        self.register_button.clicked.connect(self.open_register)
 
         self.setLayout(layout)
-    def login(self):
+    def handle_login(self):
 
         username = self.username.text()
         password = self.password.text()
 
-        print("Username:", username)
-        print("Password:", password)
+        if auth_service.login(username, password):
+
+            self.main_window = MainWindow()
+            self.main_window.show()
+
+            self.close()
+
+        else:
+
+            QMessageBox.warning(
+                self,
+                "Login Failed",
+                "Invalid username or password."
+             )
+    def open_register(self):
+        self.register_window = RegisterWindow()
+        self.register_window.show()   
