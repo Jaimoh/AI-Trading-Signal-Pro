@@ -1,3 +1,4 @@
+
 from PySide6.QtWidgets import (
     QWidget,
     QLabel,
@@ -64,6 +65,7 @@ class RegisterWindow(QWidget):
         layout.addWidget(self.register_button)
         layout.addWidget(self.login_button)
         self.register_button.clicked.connect(self.handle_register)
+        self.login_button.clicked.connect(self.back_to_login)
 
                
         self.setStyleSheet("""
@@ -94,4 +96,9 @@ class RegisterWindow(QWidget):
         """)
         self.setLayout(layout)
     def handle_register(self):
-        print("Register button clicked.")    
+        print("Register button clicked.") 
+    def back_to_login(self):
+        from ui.login_window import LoginWindow
+        self.login_window = LoginWindow()
+        self.login_window.show()
+        self.close()   
