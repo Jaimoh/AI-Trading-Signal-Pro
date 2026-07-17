@@ -1,3 +1,6 @@
+import hashlib
+from PySide6.QtWidgets import QMessageBox
+import services.database_service as database_service
 
 from PySide6.QtWidgets import (
     QWidget,
@@ -96,7 +99,83 @@ class RegisterWindow(QWidget):
         """)
         self.setLayout(layout)
     def handle_register(self):
-        print("Register button clicked.") 
+
+        first_name = self.first_name.text().strip()
+        last_name = self.last_name.text().strip()
+        username = self.username.text().strip()
+        email = self.email.text().strip()
+        password = self.password.text()
+        confirm_password = self.confirm_password.text()
+
+        if not first_name or not last_name or not username \
+        or not email or not password or not confirm_password:
+
+         QMessageBox.warning(
+            self,
+            "Missing Information",
+            "Please complete all fields."
+         )
+         return
+        
+        if password !=confirm_password:
+       
+            QMessageBox.warning(
+          self,
+          "Password Error",
+          "Password do not match"
+        
+       )
+            return
+      
+        if database_service.username_exists(username):
+
+            QMessageBox.warning(
+                self,
+                "Username Exists",
+                "Choose another username."
+       
+        )
+            return
+        if database_service.email_exists(email):
+
+             QMessageBox.warning(
+             self,
+             "Email Exists",
+             "This email is already registered."
+        
+        )
+             return
+        
+        password_hash = hashlib.sha256(
+            password.encode()
+        ).hexdigest()
+
+        success = database_service.create_user(
+            first_name,
+            last_name,
+            username,
+            email,
+            password_hash
+        )
+        if success:
+
+            QMessageBox.information(
+                self,
+                "Success",
+                "Account created successfully."
+                
+        )
+            self.back_to_login()
+
+        else:
+
+            QMessageBox.critical(
+                self,
+                "Database Error",
+                "Unable to create account."
+    )
+    
+    
     def back_to_login(self):
         from ui.login_window import LoginWindow
         self.login_window = LoginWindow()

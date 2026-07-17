@@ -34,3 +34,64 @@ def initialize_database():
     connection.close()
 
     print("✅ Database initialized successfully.")
+def username_exists(username):
+
+        connection = sqlite3.connect(DB_PATH)
+        cursor = connection.cursor()
+
+        cursor.execute(
+        "SELECT 1 FROM users WHERE username = ?",
+        (username,)
+        )
+
+        result = cursor.fetchone()
+
+        connection.close()
+
+        return result is not None
+def email_exists(email):
+        connection = sqlite3.connect(DB_PATH)
+        cursor = connection.cursor()
+
+        cursor.execute(
+            "SELECT 1 FROM users WHERE email = ?",
+            (email,)
+        )
+        result = cursor.fetchone()
+
+        connection.close()
+def create_user(
+        first_name,
+        last_name,
+        username,
+        email,
+        password_hash
+        ):
+
+        connection = sqlite3.connect(DB_PATH)
+        cursor = connection.cursor()
+        cursor.execute(
+            """
+            INSERT INTO users(
+                first_name,
+                last_name,
+                username,
+                email,
+                password_hash
+            )
+            VALUES(?,?,?,?,?) 
+                   """,
+                   (
+                       first_name,
+                       last_name,
+                       username,
+                       email,
+                       password_hash,
+                   )
+
+        ) 
+        connection.commit()
+        connection.close()
+        return True
+       
+
