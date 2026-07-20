@@ -49,6 +49,19 @@ def username_exists(username):
         connection.close()
 
         return result is not None
+def username_exists_except(username, user_id):
+    connection = sqlite3.connect(DB_PATH)
+    cursor = connection.cursor()
+
+    cursor.execute(
+        "SELECT 1 FROM users WHERE username = ? AND id != ?",
+        (username, user_id)
+    )
+    result = cursor.fetchone()
+
+    connection.close()
+    return result is not None
+
 def email_exists(email):
         connection = sqlite3.connect(DB_PATH)
         cursor = connection.cursor()
@@ -60,6 +73,20 @@ def email_exists(email):
         result = cursor.fetchone()
 
         connection.close()
+
+def email_exists_except(email, user_id):
+    connection = sqlite3.connect(DB_PATH)
+    cursor = connection.cursor()
+
+    cursor.execute(
+        "SELECT 1 FROM users WHERE email = ? AND id != ?",
+        (email, user_id)
+    )
+    result = cursor.fetchone()
+
+    connection.close()
+    return result is not None
+
 def create_user(
         first_name,
         last_name,
@@ -112,5 +139,59 @@ def get_user(username):
 
     connection.close()
 
-    return user   
+    return user  
+def update_user(
+    user_id,
+    first_name,
+    last_name,
+    username,
+    email
+    ): 
 
+    connection = sqlite3.connect(DB_PATH)
+    cursor = connection.cursor()
+
+    cursor.execute(
+        """
+        UPDATE users
+        SET
+            first_name = ?,
+            last_name = ?,
+            username = ?,
+            email = ?
+        WHERE id = ?
+        """,
+        (
+            first_name,
+            last_name,
+            username,
+            email,
+            user_id
+        )
+    )
+
+    connection.commit()
+    connection.close()
+
+    return True
+    
+#def get_user(username):
+
+    connection = sqlite3.connect(DB_PATH)
+    connection.row_factory = sqlite3.Row
+    cursor = connection.cursor()
+
+    cursor.execute(
+        """
+        SELECT *
+        FROM users
+        WHERE username = ?
+        """,
+        (username,)
+    )
+
+    user = cursor.fetchone()
+
+    connection.close()
+
+    return user

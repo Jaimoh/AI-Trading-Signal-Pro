@@ -11,6 +11,8 @@ from PySide6.QtWidgets import (
     QFrame,
     QComboBox,
     QPushButton,
+    QMessageBox,
+
 )
 from PySide6.QtCore import Qt, QTimer
 
@@ -65,6 +67,9 @@ class Dashboard(QWidget):
         refresh_button = QPushButton("Refresh")
         refresh_button.clicked.connect(self.refresh_dashboard)
 
+        logout_button = QPushButton("Logout")
+        logout_button.clicked.connect(self.logout)
+
         toolbar.addWidget(asset_label)
         toolbar.addWidget(asset_box)
         toolbar.addSpacing(20)
@@ -72,6 +77,7 @@ class Dashboard(QWidget):
         toolbar.addWidget(time_box)
         toolbar.addStretch()
         toolbar.addWidget(refresh_button)
+        toolbar.addWidget(logout_button)
 
         main_layout.addLayout(toolbar)
         status_layout = QHBoxLayout()
@@ -212,3 +218,21 @@ font-weight:bold;
         current_time = datetime.now().strftime("%H:%M:%S")
 
         self.clock_label.setText(f"🕒 {current_time}")
+    def logout(self):
+
+        reply = QMessageBox.question(
+        self,
+        "Logout",
+        "Are you sure you want to log out?",
+        QMessageBox.Yes | QMessageBox.No,
+        QMessageBox.No
+    )
+
+        if reply == QMessageBox.Yes:
+
+            from ui.login_window import LoginWindow
+
+            self.login_window = LoginWindow()
+            self.login_window.show()
+
+            self.window().close()
