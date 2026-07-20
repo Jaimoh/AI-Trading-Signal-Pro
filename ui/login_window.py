@@ -52,25 +52,32 @@ class LoginWindow(QWidget):
         self.register_button.clicked.connect(self.open_register)
 
         self.setLayout(layout)
-    def handle_login(self):
+    #def handle_login(self):
 
         username = self.username.text()
         password = self.password.text()
 
-        if auth_service.login(username, password):
+    def handle_login(self):
 
-            self.main_window = MainWindow()
-            self.main_window.show()
+     username = self.username.text()
+     password = self.password.text()
 
-            self.close()
+     user = auth_service.login(username, password)
 
-        else:
+     if user:
 
-            QMessageBox.warning(
-                self,
-                "Login Failed",
-                "Invalid username or password."
-             )
+        self.main_window = MainWindow(user)
+        self.main_window.show()
+
+        self.close()
+
+     else:
+
+        QMessageBox.warning(
+            self,
+            "Login Failed",
+            "Invalid username or password."
+        )
     def open_register(self):
         self.register_window = RegisterWindow()
         self.register_window.show()   

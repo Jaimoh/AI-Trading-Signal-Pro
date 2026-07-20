@@ -15,8 +15,10 @@ from PySide6.QtWidgets import (
 from PySide6.QtCore import Qt, QTimer
 
 class Dashboard(QWidget):
-    def __init__(self):
+    def __init__(self,user):
         super().__init__()
+
+        self.user = user
 
         main_layout = QVBoxLayout()
         main_layout.setContentsMargins(20, 20, 20, 20)

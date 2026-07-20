@@ -12,4 +12,21 @@ def login(username, password):
         password.encode()
     ).hexdigest()
 
-    return entered_password_hash == user["password_hash"]
+    if entered_password_hash == user["password_hash"]:
+        # Find the user...
+
+      return {
+        "id": user["id"],
+        "first_name": user["first_name"],
+        "last_name": user["last_name"],
+        "username": user["username"],
+        "email": user["email"]
+    }
+      return None
+
+
+
+
+
+    
+   # return entered_password_hash == user["password_hash"]
