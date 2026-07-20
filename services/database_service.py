@@ -93,5 +93,24 @@ def create_user(
         connection.commit()
         connection.close()
         return True
-       
+def get_user(username):
+
+    connection = sqlite3.connect(DB_PATH)
+    connection.row_factory = sqlite3.Row
+    cursor = connection.cursor()
+
+    cursor.execute(
+        """
+        SELECT *
+        FROM users
+        WHERE username = ?
+        """,
+        (username,)
+    )
+
+    user = cursor.fetchone()
+
+    connection.close()
+
+    return user   
 

@@ -1,9 +1,15 @@
+import hashlib
+import services.database_service as database_service
+
 def login(username, password):
 
-    VALID_USERNAME = "admin"
-    VALID_PASSWORD = "1234"
+    user = database_service.get_user(username)
 
-    if username == VALID_USERNAME and password == VALID_PASSWORD:
-        return True
+    if user is None:
+        return False
 
-    return False
+    entered_password_hash = hashlib.sha256(
+        password.encode()
+    ).hexdigest()
+
+    return entered_password_hash == user["password_hash"]
