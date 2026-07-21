@@ -1,4 +1,5 @@
 from services.market_data import get_market_data
+from ui.profile_window import ProfileWindow
 
 from datetime import datetime
 import time
@@ -64,6 +65,9 @@ class Dashboard(QWidget):
                 "1 Hour",
         ])
 
+        profile_button = QPushButton("My Profile")
+        profile_button.clicked.connect(self.show_profile)
+
         refresh_button = QPushButton("Refresh")
         refresh_button.clicked.connect(self.refresh_dashboard)
 
@@ -76,6 +80,7 @@ class Dashboard(QWidget):
         toolbar.addWidget(time_label)
         toolbar.addWidget(time_box)
         toolbar.addStretch()
+        toolbar.addWidget(profile_button)
         toolbar.addWidget(refresh_button)
         toolbar.addWidget(logout_button)
 
@@ -236,3 +241,6 @@ font-weight:bold;
             self.login_window.show()
 
             self.window().close()
+    def show_profile(self):
+        self.profile_window = ProfileWindow(self.user)
+        self.profile_window.show()

@@ -6,7 +6,7 @@ from PySide6.QtWidgets import (
     QStatusBar,
 )
 from ui.dashboard import Dashboard
-from ui.profile_window import ProfileWindow
+#from ui.profile_window import ProfileWindow
 from PySide6.QtCore import Qt
 
 
@@ -56,8 +56,8 @@ class MainWindow(QMainWindow):
       
         self.dashboard = Dashboard(self.user)
         layout.addWidget(self.dashboard)
-        self.profile_window = ProfileWindow(self.user)
-        self.profile_window.show()  # Hide the profile window initially
+        #self.profile_window = ProfileWindow(self.user)
+        #self.profile_window.show()  # Hide the profile window initially
 
         central_widget.setLayout(layout)
 

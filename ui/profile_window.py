@@ -9,6 +9,8 @@ from PySide6.QtWidgets import (
 
 from PySide6.QtCore import Qt
 
+from services import database_service
+
 
 class ProfileWindow(QWidget):
 
@@ -71,6 +73,7 @@ class ProfileWindow(QWidget):
 
         self.setLayout(layout)
     def save_changes(self):
+        print("Save button clicked")
 
         first_name = self.first_name.text().strip()
         last_name = self.last_name.text().strip()
@@ -85,3 +88,39 @@ class ProfileWindow(QWidget):
             "Please complete all fields."
            )
             return    
+        if database_service.username_exists_except(
+            username,
+            self.user["id"]
+        ):
+            QMessageBox.warning(
+                self,
+                "Username Already Exists",
+                "Please choose a different username."
+            )
+            return
+        if database_service.email_exists_except(
+            email,
+            self.user["id"]
+        ):
+            QMessageBox.warning(
+                self,
+                "Email Already Exists",
+                "Please choose a different email."
+            )
+            return
+        database_service.update_user(
+            self.user["id"],
+            first_name,
+            last_name,
+            username,
+            email
+        )
+        QMessageBox.information(
+            self,
+            "Changes Saved",
+            "Your profile has been updated successfully."
+        )
+        self.user = database_service.get_user(username)
+        self.close()
+
+        
