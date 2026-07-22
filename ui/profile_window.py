@@ -1,3 +1,8 @@
+import email
+from multiprocessing.dummy import connection
+import sqlite3
+
+
 from PySide6.QtWidgets import (
     QMessageBox,
     QWidget,
@@ -7,12 +12,14 @@ from PySide6.QtWidgets import (
     QPushButton,
 )
 
-from PySide6.QtCore import Qt
+from PySide6.QtCore import Qt, Signal
+
 
 from services import database_service
 
 
 class ProfileWindow(QWidget):
+    user_updated = Signal(dict)  # Signal to notify when the user is updated
 
     def __init__(self, user):
         super().__init__()
@@ -72,55 +79,26 @@ class ProfileWindow(QWidget):
         """)
 
         self.setLayout(layout)
-    def save_changes(self):
-        print("Save button clicked")
+    def get_user(username):
 
-        first_name = self.first_name.text().strip()
-        last_name = self.last_name.text().strip()
-        username = self.username.text().strip()
-        email = self.email.text().strip() 
+        connection = sqlite3.connect(database_service.DB_PATH)
+        connection.row_factory = sqlite3.Row
+        cursor = connection.cursor()
 
-        if not first_name or not last_name or not username or not email:
+        cursor.execute(
+        """
+        SELECT *
+        FROM users
+        WHERE username = ?
+        """,
+        (username,)
+    )
 
-            QMessageBox.warning(
-            self,
-            "Missing Information",
-            "Please complete all fields."
-           )
-            return    
-        if database_service.username_exists_except(
-            username,
-            self.user["id"]
-        ):
-            QMessageBox.warning(
-                self,
-                "Username Already Exists",
-                "Please choose a different username."
-            )
-            return
-        if database_service.email_exists_except(
-            email,
-            self.user["id"]
-        ):
-            QMessageBox.warning(
-                self,
-                "Email Already Exists",
-                "Please choose a different email."
-            )
-            return
-        database_service.update_user(
-            self.user["id"],
-            first_name,
-            last_name,
-            username,
-            email
-        )
-        QMessageBox.information(
-            self,
-            "Changes Saved",
-            "Your profile has been updated successfully."
-        )
-        self.user = database_service.get_user(username)
-        self.close()
+        user = cursor.fetchone()
 
-        
+        connection.close()
+
+        if user is None:
+            return None
+
+        return dict(user)

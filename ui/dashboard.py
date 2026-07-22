@@ -15,9 +15,10 @@ from PySide6.QtWidgets import (
     QMessageBox,
 
 )
-from PySide6.QtCore import Qt, QTimer
+from PySide6.QtCore import Qt, QTimer, Signal
 
 class Dashboard(QWidget):
+    open_profile_requested = Signal()  # Signal to request opening the profile window
     def __init__(self,user):
         super().__init__()
 
@@ -66,7 +67,8 @@ class Dashboard(QWidget):
         ])
 
         profile_button = QPushButton("My Profile")
-        profile_button.clicked.connect(self.show_profile)
+        profile_button.clicked.connect(self.open_profile_requested.emit)
+
 
         refresh_button = QPushButton("Refresh")
         refresh_button.clicked.connect(self.refresh_dashboard)
@@ -89,10 +91,10 @@ class Dashboard(QWidget):
 
         self.connection_label = QLabel("🟢 Connected")
         self.connection_label.setStyleSheet("""
-color:lightgreen;
-font-size:14px;
-font-weight:bold;
-""")
+            color:lightgreen;
+            font-size:14px;
+            font-weight:bold;
+            """)
 
         self.clock_label = QLabel()
         self.clock_label.setStyleSheet("""
@@ -241,6 +243,10 @@ font-weight:bold;
             self.login_window.show()
 
             self.window().close()
-    def show_profile(self):
-        self.profile_window = ProfileWindow(self.user)
-        self.profile_window.show()
+    #def show_profile(self):
+
+        #self.profile_window = ProfileWindow(self.user)
+
+        #self.profile_window.user_updated.connect(self.update_user)
+
+        #self.profile_window.show()

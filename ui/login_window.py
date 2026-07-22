@@ -80,4 +80,5 @@ class LoginWindow(QWidget):
         )
     def open_register(self):
         self.register_window = RegisterWindow()
-        self.register_window.show()   
+        self.register_window.show()  
+         

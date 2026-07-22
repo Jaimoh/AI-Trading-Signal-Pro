@@ -6,7 +6,7 @@ from PySide6.QtWidgets import (
     QStatusBar,
 )
 from ui.dashboard import Dashboard
-#from ui.profile_window import ProfileWindow
+from ui.profile_window import ProfileWindow
 from PySide6.QtCore import Qt
 
 
@@ -40,22 +40,28 @@ class MainWindow(QMainWindow):
 
         layout.addWidget(title)
 
-        welcome_label = QLabel(
+        self.welcome_label = QLabel(
             f"Welcome, {self.user['first_name']}!"
-)
-
-        welcome_label.setStyleSheet("""
+    )
+        layout.addWidget(self.welcome_label)
+        self.welcome_label.setStyleSheet("""
             font-size: 20px;
             font-weight: bold;
             color: maroon;
             padding: 10px;
             """)
 
-        layout.addWidget(welcome_label)
+        self.dashboard = Dashboard(self.user)
+       
+       
+        layout.addWidget(self.dashboard)
+
+        self.dashboard.open_profile_requested.connect(self.show_profile)
+        #self.profile_window.user_updated.connect(self.update_user)
 
       
-        self.dashboard = Dashboard(self.user)
-        layout.addWidget(self.dashboard)
+        
+      
         #self.profile_window = ProfileWindow(self.user)
         #self.profile_window.show()  # Hide the profile window initially
 
@@ -65,5 +71,19 @@ class MainWindow(QMainWindow):
         status = QStatusBar()
         status.showMessage("Ready")
         self.setStatusBar(status)
+    def update_user(self, updated_user):
+        print("✅ MainWindow received updated user")
+        print(updated_user)
+        self.user = updated_user   
+        
+        self.welcome_label.setText(
+            f"Welcome, {self.user['first_name']}!")
+        
+        self.dashboard.user = updated_user  # Update the user in the dashboard as well
+    def show_profile(self):
 
-       
+        self.profile_window = ProfileWindow(self.user)
+
+        self.profile_window.user_updated.connect(self.update_user)
+
+        self.profile_window.show()
