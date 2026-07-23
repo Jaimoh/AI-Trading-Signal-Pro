@@ -139,7 +139,10 @@ def get_user(username):
 
     connection.close()
 
-    return user  
+    if user is None:
+        return None
+
+    return dict(user)  # Convert Row object to dictionary
 def update_user(
     user_id,
     first_name,
@@ -174,6 +177,28 @@ def update_user(
     connection.close()
 
     return True
+def get_user_by_id(user_id):
+    connection = sqlite3.connect(DB_PATH)
+    connection.row_factory = sqlite3.Row
+    cursor = connection.cursor()
+
+    cursor.execute(
+        """
+        SELECT *
+        FROM users
+        WHERE id = ?
+        """,
+        (user_id,)
+    )
+
+    user = cursor.fetchone()
+
+    connection.close()
+
+    if user is None:
+        return None
+
+    return dict(user)  # Convert Row object to dictionary
     
 #def get_user(username):
 

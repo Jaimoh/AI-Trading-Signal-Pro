@@ -54,7 +54,12 @@ class ProfileWindow(QWidget):
         self.save_button = QPushButton("Save Changes")
         self.save_button.clicked.connect(self.save_changes)
 
-        layout.addWidget(self.save_button)
+        #layout.addWidget(self.save_button)
+        layout.addWidget(
+            self.save_button,
+            alignment=Qt.AlignCenter
+
+        )
 
         self.setStyleSheet("""
             QWidget{
@@ -73,32 +78,80 @@ class ProfileWindow(QWidget):
             QPushButton{
                 background:#007ACC;
                 color:white;
-                padding:10px;
-                border-radius:8px;
+                min-width:180px;
+                max-width:180px;
+                min-height:38px;
+                max-height:38px;
+                border:none;
+                border-radius:10px;
+                font-size:14px;
+                font-weight:bold;
+             
+
+                
+            }
+            QPushButton:hover{
+                background:#1A8CFF;
+            }
+            QPushButton:pressed{
+                background:#005A9E;
             }
         """)
+        self.save_button.setFixedHeight(38)
+        self.save_button.setFixedWidth(180)
 
         self.setLayout(layout)
-    def get_user(username):
+    def save_changes(self):
+        new_first_name = self.first_name.text().strip()
+        new_last_name = self.last_name.text().strip()
+        new_username = self.username.text().strip()
+        new_email = self.email.text().strip()
 
-        connection = sqlite3.connect(database_service.DB_PATH)
-        connection.row_factory = sqlite3.Row
-        cursor = connection.cursor()
+        if not new_first_name or not new_last_name or not new_username or not new_email:
+            QMessageBox.warning(self, "Input Error", "All fields are required.")
+            return
 
-        cursor.execute(
-        """
-        SELECT *
-        FROM users
-        WHERE username = ?
-        """,
-        (username,)
-    )
+        if database_service.username_exists_except(new_username, self.user["id"]):
+            QMessageBox.warning(self, "Input Error", "Username already exists.")
+            return
 
-        user = cursor.fetchone()
+        if database_service.email_exists_except(new_email, self.user["id"]):
+            QMessageBox.warning(self, "Input Error", "Email already exists.")
+            return
 
-        connection.close()
+        database_service.update_user(
+            self.user["id"],
+            new_first_name,
+            new_last_name,
+            new_username,
+            new_email
+        )
 
-        if user is None:
-            return None
+        updated_user = database_service.get_user_by_id(self.user["id"])
+        self.user_updated.emit(updated_user)
 
-        return dict(user)
+        QMessageBox.information(self, "Success", "Profile updated successfully.")
+
+    #def get_user(username):
+
+       # connection = sqlite3.connect(database_service.DB_PATH)
+        #connection.row_factory = sqlite3.Row
+       # cursor = connection.cursor()
+
+       # cursor.execute(
+        #"""
+        #SELECT *
+        #FROM users
+        #WHERE username = ?
+       # """,
+       # (username,)
+    #)
+
+       # user = cursor.fetchone()
+
+       # connection.close()
+
+       # if user is None:
+       #     return None
+
+      #  return dict(user)

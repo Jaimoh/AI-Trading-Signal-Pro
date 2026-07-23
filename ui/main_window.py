@@ -72,8 +72,8 @@ class MainWindow(QMainWindow):
         status.showMessage("Ready")
         self.setStatusBar(status)
     def update_user(self, updated_user):
-        print("✅ MainWindow received updated user")
-        print(updated_user)
+       # print("✅ MainWindow received updated user")
+        #print(updated_user)
         self.user = updated_user   
         
         self.welcome_label.setText(
