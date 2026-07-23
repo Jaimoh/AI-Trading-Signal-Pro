@@ -19,6 +19,7 @@ from PySide6.QtCore import Qt, QTimer, Signal
 
 class Dashboard(QWidget):
     open_profile_requested = Signal()  # Signal to request opening the profile window
+    history_requested = Signal()  # Signal to request opening the history window
     def __init__(self,user):
         super().__init__()
 
@@ -69,6 +70,9 @@ class Dashboard(QWidget):
         profile_button = QPushButton("My Profile")
         profile_button.clicked.connect(self.open_profile_requested.emit)
 
+        history_button = QPushButton("History")
+        history_button.clicked.connect(self.history_requested.emit)
+
 
         refresh_button = QPushButton("Refresh")
         refresh_button.clicked.connect(self.refresh_dashboard)
@@ -83,6 +87,7 @@ class Dashboard(QWidget):
         toolbar.addWidget(time_box)
         toolbar.addStretch()
         toolbar.addWidget(profile_button)
+        toolbar.addWidget(history_button)
         toolbar.addWidget(refresh_button)
         toolbar.addWidget(logout_button)
 

@@ -131,6 +131,8 @@ class ProfileWindow(QWidget):
         self.user_updated.emit(updated_user)
 
         QMessageBox.information(self, "Success", "Profile updated successfully.")
+        self.close()
+        
 
     #def get_user(username):
 

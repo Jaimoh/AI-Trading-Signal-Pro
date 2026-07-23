@@ -8,6 +8,8 @@ from PySide6.QtWidgets import (
 from ui.dashboard import Dashboard
 from ui.profile_window import ProfileWindow
 from PySide6.QtCore import Qt
+from ui.history_window import HistoryWindow
+
 
 
 class MainWindow(QMainWindow):
@@ -57,6 +59,7 @@ class MainWindow(QMainWindow):
         layout.addWidget(self.dashboard)
 
         self.dashboard.open_profile_requested.connect(self.show_profile)
+        self.dashboard.history_requested.connect(self.show_history)
         #self.profile_window.user_updated.connect(self.update_user)
 
       
@@ -87,3 +90,7 @@ class MainWindow(QMainWindow):
         self.profile_window.user_updated.connect(self.update_user)
 
         self.profile_window.show()
+
+    def show_history(self):
+        self.history_window = HistoryWindow(self.user)
+        self.history_window.show()

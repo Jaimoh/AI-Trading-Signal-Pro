@@ -29,7 +29,54 @@ def initialize_database():
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )
     """)
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS signals (
 
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+
+            user_id INTEGER NOT NULL,
+
+            asset TEXT NOT NULL,
+
+            timeframe TEXT NOT NULL,
+
+            signal TEXT NOT NULL,
+
+            price REAL,
+
+            rsi REAL,
+
+            ema REAL,
+
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+
+            FOREIGN KEY(user_id) REFERENCES users(id)
+        )
+    """)
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS trades (
+
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+
+            user_id INTEGER NOT NULL,
+
+            asset TEXT NOT NULL,
+
+            timeframe TEXT NOT NULL,
+
+            trade_type TEXT NOT NULL,
+
+            entry_price REAL,
+
+            exit_price REAL,
+
+            quantity REAL,
+
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+
+            FOREIGN KEY(user_id) REFERENCES users(id)
+        )
+    """)
     connection.commit()
     connection.close()
 
