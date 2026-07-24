@@ -1,5 +1,6 @@
 from services.market_data import get_market_data
 from ui.profile_window import ProfileWindow
+from services import history_service
 
 from datetime import datetime
 import time
@@ -224,6 +225,15 @@ class Dashboard(QWidget):
          self.rsi_label.setText(str(rsi))
          self.ema_label.setText(str(ema))
          self.signal_label.setText(signal)
+         history_service.save_signal(
+            self.user["id"],
+            "EUR/USD",
+            "1 Minute",
+            signal,
+            price,
+            rsi,
+            ema
+         )
          self.connection_label.setText("🟢 Connected")
     def update_clock(self):
 

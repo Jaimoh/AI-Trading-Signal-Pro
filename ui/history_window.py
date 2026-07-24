@@ -8,7 +8,9 @@ from PySide6.QtWidgets import (
 
 from PySide6.QtCore import Qt
 
-from services import history_service
+#from services import history_service
+import services.history_service as history_service
+
 
 
 class HistoryWindow(QWidget):
@@ -42,10 +44,11 @@ class HistoryWindow(QWidget):
             "Date",
             "Asset",
             "Timeframe",
-            "Signal",
+             "Signal",
             "Price",
             "RSI",
             "EMA"
+           
         ])
 
         layout.addWidget(self.table)
@@ -74,6 +77,11 @@ class HistoryWindow(QWidget):
 
         self.load_history()
     def load_history(self):
+        signals = history_service.get_user_signals(
+            self.user["id"]
+        )
+        print(signals)
+
 
         signals = history_service.get_user_signals(
           self.user["id"]
@@ -85,7 +93,7 @@ class HistoryWindow(QWidget):
 
             self.table.setItem(
              row,
-                0,
+            0,
             QTableWidgetItem(signal["created_at"])
             )
 
@@ -95,31 +103,31 @@ class HistoryWindow(QWidget):
             QTableWidgetItem(signal["asset"])
          )
 
-        self.table.setItem(
+            self.table.setItem(
             row,
             2,
             QTableWidgetItem(signal["timeframe"])
             )
 
-        self.table.setItem(
+            self.table.setItem(
             row,
             3,
             QTableWidgetItem(signal["signal"])
             )
 
-        self.table.setItem(
+            self.table.setItem(
             row,
             4,
             QTableWidgetItem(str(signal["price"]))
         )
 
-        self.table.setItem(
+            self.table.setItem(
             row,
             5,
             QTableWidgetItem(str(signal["rsi"]))
         )
 
-        self.table.setItem(
+            self.table.setItem(
             row,
             6,
             QTableWidgetItem(str(signal["ema"]))
