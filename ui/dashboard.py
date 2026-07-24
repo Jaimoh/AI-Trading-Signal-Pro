@@ -4,6 +4,10 @@ from services import history_service
 
 from datetime import datetime
 import time
+import pyqtgraph as pg
+from pyqtgraph import PlotWidget
+
+
 
 from PySide6.QtWidgets import (
     QWidget,
@@ -14,6 +18,7 @@ from PySide6.QtWidgets import (
     QComboBox,
     QPushButton,
     QMessageBox,
+    QCheckBox,
 
 )
 from PySide6.QtCore import Qt, QTimer, Signal
@@ -25,6 +30,8 @@ class Dashboard(QWidget):
         super().__init__()
 
         self.user = user
+        self.price_history = []
+
 
         main_layout = QVBoxLayout()
         main_layout.setContentsMargins(20, 20, 20, 20)
@@ -49,8 +56,9 @@ class Dashboard(QWidget):
 
         asset_label = QLabel("Asset:")
 
-        asset_box = QComboBox()
-        asset_box.addItems([
+        #asset_box = QComboBox()
+        self.asset_box = QComboBox()  # Store the asset_box as an instance variable
+        self.asset_box.addItems([
            "EUR/USD",
            "GBP/USD",
            "USD/JPY",
@@ -60,8 +68,8 @@ class Dashboard(QWidget):
 
         time_label = QLabel("Timeframe:")
 
-        time_box = QComboBox()
-        time_box.addItems([
+        self.time_box = QComboBox()  # Store the time_box as an instance variable
+        self.time_box.addItems([
                "1 Minute",
                "5 Minutes",
                "15 Minutes",
@@ -78,18 +86,24 @@ class Dashboard(QWidget):
         refresh_button = QPushButton("Refresh")
         refresh_button.clicked.connect(self.refresh_dashboard)
 
+        self.auto_refresh_checkbox = QCheckBox("Auto Refresh")
+        self.auto_refresh_checkbox.setChecked(True) 
+        self.auto_refresh_checkbox.stateChanged.connect(self.toggle_auto_refresh)
+
         logout_button = QPushButton("Logout")
         logout_button.clicked.connect(self.logout)
 
+
         toolbar.addWidget(asset_label)
-        toolbar.addWidget(asset_box)
+        toolbar.addWidget(self.asset_box)
         toolbar.addSpacing(20)
         toolbar.addWidget(time_label)
-        toolbar.addWidget(time_box)
+        toolbar.addWidget(self.time_box)
         toolbar.addStretch()
         toolbar.addWidget(profile_button)
         toolbar.addWidget(history_button)
         toolbar.addWidget(refresh_button)
+        toolbar.addWidget(self.auto_refresh_checkbox)
         toolbar.addWidget(logout_button)
 
         main_layout.addLayout(toolbar)
@@ -156,18 +170,43 @@ class Dashboard(QWidget):
         padding:10px;
         """)
 
-        chart_placeholder = QLabel("📈 Chart Coming Soon...")
-        chart_placeholder.setAlignment(Qt.AlignCenter)
+        self.chart = PlotWidget()
+        self.chart.setBackground("#252526")
+        self.chart.setTitle(
+            "Live Price Chart",
+              color="w", 
+              size="12pt")
+        self.chart.showGrid(x=True, y=True)
 
-        chart_placeholder.setStyleSheet("""
-        font-size:20px;
-        color:gray;
-        """)
+        self.chart.showGrid(x=True, y=True, alpha=0.3)
+
+        self.chart.setLabel("left", "Price")
+        self.chart.setLabel("bottom", "Refresh")
+# Store live prices
+        self.price_history = []
+
+# Create the line that will be updated
+        self.price_curve = self.chart.plot(
+             [],
+            [],
+            pen=pg.mkPen(color=(0, 255, 0), width=2)
+        )
+        #self.chart.setYRange(1.17000, 1.18000)
+
+
+        #layout.addWidget(self.chart)
+
+        #chart_placeholder.setAlignment(Qt.AlignCenter)
+
+        #chart_placeholder.setStyleSheet("""
+        #font-size:20px;
+        #color:gray;
+        #""")
 
         chart_layout.addWidget(chart_title)
-        chart_layout.addStretch()
-        chart_layout.addWidget(chart_placeholder)
-        chart_layout.addStretch()
+    
+        chart_layout.addWidget(self.chart)
+        
 
         chart_frame.setLayout(chart_layout)
         main_layout.addWidget(chart_frame)
@@ -179,8 +218,12 @@ class Dashboard(QWidget):
         self.timer.timeout.connect(self.update_clock)
 
         self.timer.start(1000)
+        self.refresh_timer = QTimer()
+        self.refresh_timer.timeout.connect(self.refresh_dashboard)
+        self.refresh_timer.start(6000)  # Refresh every minute
 
         self.update_clock()
+        self.refresh_dashboard()  # Initial refresh when the dashboard is created
 
         self.setLayout(main_layout)
 
@@ -219,16 +262,25 @@ class Dashboard(QWidget):
          self.connection_label.setText("🟡 Updating...")
          
          price, rsi, ema, signal = get_market_data()
-        
 
+         self.price_history.append(price)
+         if len(self.price_history) > 30:
+             self.price_history.pop(0)
+
+         self.price_curve.setData(self.price_history)
+
+
+         
          self.price_label.setText(str(price))
          self.rsi_label.setText(str(rsi))
          self.ema_label.setText(str(ema))
          self.signal_label.setText(signal)
+         asset = self.asset_box.currentText()
+         timeframe = self.time_box.currentText()
          history_service.save_signal(
             self.user["id"],
-            "EUR/USD",
-            "1 Minute",
+            asset,
+            timeframe,
             signal,
             price,
             rsi,
@@ -265,3 +317,11 @@ class Dashboard(QWidget):
         #self.profile_window.user_updated.connect(self.update_user)
 
         #self.profile_window.show()
+    def toggle_auto_refresh(self, state):
+        if self.auto_refresh_checkbox.isChecked():
+            self.refresh_timer.start(5000)
+            self.connection_label.setText("🟢 Auto Refresh ON")
+              # Refresh every minute
+        else:
+            self.refresh_timer.stop()
+            self.connection_label.setText("🔴 Auto Refresh OFF")

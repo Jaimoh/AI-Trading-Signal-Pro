@@ -53,6 +53,7 @@ def get_user_signals(user_id):
         SELECT *
         FROM signals
         WHERE user_id = ?
+        ORDER BY created_at DESC
         """,
         (user_id,)
     )
@@ -100,3 +101,19 @@ def get_user_trades(user_id):
     connection.close()
 
     return [dict(trade) for trade in trades]
+def clear_user_signals(user_id):
+    connection = sqlite3.connect(DB_PATH)
+    cursor = connection.cursor()
+
+    cursor.execute(
+        """
+        DELETE FROM signals
+        WHERE user_id = ?
+        """,
+        (user_id,)
+    )
+
+    connection.commit()
+    connection.close()
+
+    return True
