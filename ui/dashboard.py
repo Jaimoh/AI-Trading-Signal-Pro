@@ -1,3 +1,5 @@
+#from socket import close
+
 from services.market_data import get_market_data
 from ui.profile_window import ProfileWindow
 from services import history_service
@@ -261,17 +263,34 @@ class Dashboard(QWidget):
     def refresh_dashboard(self):
          self.connection_label.setText("🟡 Updating...")
          
-         price, rsi, ema, signal = get_market_data()
+         #price, rsi, ema, signal = get_market_data()
+         open_price, high_price, low_price, close_price, rsi, ema, signal = get_market_data()
 
-         self.price_history.append(price)
+         self.price_history.append(close_price)
          if len(self.price_history) > 30:
              self.price_history.pop(0)
 
-         self.price_curve.setData(self.price_history)
+         #self.price_curve.setData(self.price_history)
+         x = list(range(len(self.price_history)))
+         y = self.price_history
+        # print("close_price", close_price)
+         #print("close_price type", type(close_price))
+
+         #print("price_history", self.price_history)
+         #print("price_history type", type(self.price_history))
+         self.price_curve.setData(x, y)
+
+         if self.price_history:
+             #print(self.price_history)
+             #print(type(close_price))
+             minimum=min(self.price_history) - 0.0005
+             maximum=max(self.price_history) + 0.0005
+             self.chart.setYRange(minimum, maximum)
+
 
 
          
-         self.price_label.setText(str(price))
+         self.price_label.setText(f"{close_price:.5f}")
          self.rsi_label.setText(str(rsi))
          self.ema_label.setText(str(ema))
          self.signal_label.setText(signal)
@@ -282,7 +301,7 @@ class Dashboard(QWidget):
             asset,
             timeframe,
             signal,
-            price,
+            close_price,
             rsi,
             ema
          )
