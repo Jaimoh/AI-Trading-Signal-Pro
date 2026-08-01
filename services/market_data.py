@@ -25,15 +25,15 @@ def get_market_data():
 
     last_close = close_price
 
-    return (
-        round(open_price, 5),
-        round(high_price, 5),
-        round(low_price, 5),
-        round(close_price, 5),
-        rsi,
-        ema,
-        signal      
-    )
+    return {
+        "open": round(open_price, 5),
+        "high": round(high_price, 5),
+        "low": round(low_price, 5),
+        "close": round(close_price, 5),
+        "rsi": rsi,
+        "ema": ema,
+        "signal": signal
+    }
 
 
 

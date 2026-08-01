@@ -1,13 +1,22 @@
 #from socket import close
 
+from matplotlib.ticker import MaxNLocator
+
 from services.market_data import get_market_data
 from ui.profile_window import ProfileWindow
 from services import history_service
 
 from datetime import datetime
 import time
-import pyqtgraph as pg
-from pyqtgraph import PlotWidget
+#import pyqtgraph as pg
+#from pyqtgraph import PlotWidget
+import pandas as pd
+import mplfinance as mpf
+
+from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
+from matplotlib.figure import Figure
+from matplotlib.ticker import MaxNLocator
+ 
 
 
 
@@ -33,6 +42,8 @@ class Dashboard(QWidget):
 
         self.user = user
         self.price_history = []
+        self.candle_history = []
+
 
 
         main_layout = QVBoxLayout()
@@ -172,43 +183,43 @@ class Dashboard(QWidget):
         padding:10px;
         """)
 
-        self.chart = PlotWidget()
-        self.chart.setBackground("#252526")
-        self.chart.setTitle(
+       
+        self.figure = Figure(figsize=(10, 6), dpi=100, facecolor="#252526")  # Set the background color of the figure # Set the background color of the figure
+        self.figure.subplots_adjust(left=0.1, right=0.95, top=0.9, bottom=0.1)# Adjust the subplot parameters for better spacing)  
+        self.canvas = FigureCanvas(self.figure)
+        self.chart = self.figure.add_subplot(111)
+        self.chart.set_facecolor("#252526")
+        self.chart.set_title(
             "Live Price Chart",
-              color="w", 
-              size="12pt")
-        self.chart.showGrid(x=True, y=True)
+              color="white", 
+              fontsize="12")
 
-        self.chart.showGrid(x=True, y=True, alpha=0.3)
+        self.chart.set_xlabel("Time")
+        self.chart.set_ylabel("Price")
 
-        self.chart.setLabel("left", "Price")
-        self.chart.setLabel("bottom", "Refresh")
-# Store live prices
+        self.chart.grid(True)
+
+        self.chart.grid(
+        True, 
+        linestyle='--',
+        linewidth=0.5,
+        alpha=0.3)
+
+        
+
         self.price_history = []
 
-# Create the line that will be updated
-        self.price_curve = self.chart.plot(
+        self.price_curve, = self.chart.plot(
              [],
             [],
-            pen=pg.mkPen(color=(0, 255, 0), width=2)
+            color="lime",
+            linestyle="solid",
+            linewidth=2
         )
-        #self.chart.setYRange(1.17000, 1.18000)
-
-
-        #layout.addWidget(self.chart)
-
-        #chart_placeholder.setAlignment(Qt.AlignCenter)
-
-        #chart_placeholder.setStyleSheet("""
-        #font-size:20px;
-        #color:gray;
-        #""")
 
         chart_layout.addWidget(chart_title)
-    
-        chart_layout.addWidget(self.chart)
-        
+        chart_layout.addWidget(self.canvas)
+       
 
         chart_frame.setLayout(chart_layout)
         main_layout.addWidget(chart_frame)
@@ -263,8 +274,28 @@ class Dashboard(QWidget):
     def refresh_dashboard(self):
          self.connection_label.setText("🟡 Updating...")
          
-         #price, rsi, ema, signal = get_market_data()
-         open_price, high_price, low_price, close_price, rsi, ema, signal = get_market_data()
+    
+         market = get_market_data()
+
+         open_price = market["open"]
+         high_price = market["high"]
+         low_price = market["low"]
+         close_price = market["close"]
+         rsi = market["rsi"]
+         ema = market["ema"]
+         signal = market["signal"]
+
+         self.candle_history.append({
+             "open": open_price,
+             "high": high_price,
+             "low": low_price,
+             "close": close_price
+         })
+
+         if len(self.candle_history) > 40:
+             self.candle_history.pop(0)
+
+
 
          self.price_history.append(close_price)
          if len(self.price_history) > 30:
@@ -273,23 +304,21 @@ class Dashboard(QWidget):
          #self.price_curve.setData(self.price_history)
          x = list(range(len(self.price_history)))
          y = self.price_history
-        # print("close_price", close_price)
-         #print("close_price type", type(close_price))
+        
+         self.price_curve.set_data(x, y)
 
-         #print("price_history", self.price_history)
-         #print("price_history type", type(self.price_history))
-         self.price_curve.setData(x, y)
+         self.chart.relim()
+         self.chart.autoscale_view()
+
+         self.canvas.draw()
 
          if self.price_history:
-             #print(self.price_history)
-             #print(type(close_price))
+            
              minimum=min(self.price_history) - 0.0005
              maximum=max(self.price_history) + 0.0005
-             self.chart.setYRange(minimum, maximum)
 
+             self.chart.set_ylim(minimum, maximum)
 
-
-         
          self.price_label.setText(f"{close_price:.5f}")
          self.rsi_label.setText(str(rsi))
          self.ema_label.setText(str(ema))
@@ -306,6 +335,8 @@ class Dashboard(QWidget):
             ema
          )
          self.connection_label.setText("🟢 Connected")
+         self.update_chart()
+
     def update_clock(self):
 
         current_time = datetime.now().strftime("%H:%M:%S")
@@ -329,13 +360,7 @@ class Dashboard(QWidget):
             self.login_window.show()
 
             self.window().close()
-    #def show_profile(self):
-
-        #self.profile_window = ProfileWindow(self.user)
-
-        #self.profile_window.user_updated.connect(self.update_user)
-
-        #self.profile_window.show()
+  
     def toggle_auto_refresh(self, state):
         if self.auto_refresh_checkbox.isChecked():
             self.refresh_timer.start(5000)
@@ -344,3 +369,36 @@ class Dashboard(QWidget):
         else:
             self.refresh_timer.stop()
             self.connection_label.setText("🔴 Auto Refresh OFF")
+
+    def update_chart(self):
+        self.chart.clear()
+
+        ax = self.figure.add_subplot(111)
+
+        df = pd.DataFrame(self.candle_history)  
+
+        if len(df) == 0:
+            return
+
+        df.index = pd.date_range(
+            end=datetime.now(),
+            periods=len(df),
+            freq="min"  # Assuming each candle represents 1 minute
+        )
+
+        mpf.plot(
+            df,
+            type="candle",
+            ax=ax,
+           # fig=self.figure,
+            style="charles",
+            ylabel="Price",
+            volume=False,
+            show_nontrading=True
+        )
+        self.canvas.draw()
+        self.chart.yaxis.tick_right()
+        self.chart.yaxis.set_major_locator(MaxNLocator(8))
+          # Limit to 6 ticks on the y-axis
+
+        
