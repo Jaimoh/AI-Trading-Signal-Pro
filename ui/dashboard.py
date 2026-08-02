@@ -1,5 +1,6 @@
 #from socket import close
 
+from matplotlib import style
 from matplotlib.ticker import MaxNLocator
 
 from services.market_data import get_market_data
@@ -207,15 +208,7 @@ class Dashboard(QWidget):
 
         
 
-        self.price_history = []
-
-        self.price_curve, = self.chart.plot(
-             [],
-            [],
-            color="lime",
-            linestyle="solid",
-            linewidth=2
-        )
+        
 
         chart_layout.addWidget(chart_title)
         chart_layout.addWidget(self.canvas)
@@ -236,9 +229,11 @@ class Dashboard(QWidget):
         self.refresh_timer.start(6000)  # Refresh every minute
 
         self.update_clock()
-        self.refresh_dashboard()  # Initial refresh when the dashboard is created
+        QTimer.singleShot(200, self.refresh_dashboard)  # Initial refresh when the dashboard is created
 
         self.setLayout(main_layout)
+
+
 
     def create_card(self, title, value):
         card = QFrame()
@@ -297,27 +292,6 @@ class Dashboard(QWidget):
 
 
 
-         self.price_history.append(close_price)
-         if len(self.price_history) > 30:
-             self.price_history.pop(0)
-
-         #self.price_curve.setData(self.price_history)
-         x = list(range(len(self.price_history)))
-         y = self.price_history
-        
-         self.price_curve.set_data(x, y)
-
-         self.chart.relim()
-         self.chart.autoscale_view()
-
-         self.canvas.draw()
-
-         if self.price_history:
-            
-             minimum=min(self.price_history) - 0.0005
-             maximum=max(self.price_history) + 0.0005
-
-             self.chart.set_ylim(minimum, maximum)
 
          self.price_label.setText(f"{close_price:.5f}")
          self.rsi_label.setText(str(rsi))
@@ -371,34 +345,103 @@ class Dashboard(QWidget):
             self.connection_label.setText("🔴 Auto Refresh OFF")
 
     def update_chart(self):
-        self.chart.clear()
-
-        ax = self.figure.add_subplot(111)
+        self.figure.clear()
+       # Clear the previous chart
+        self.chart = self.figure.add_subplot(111)
+        self.chart.set_facecolor("#1E1E1E")  
 
         df = pd.DataFrame(self.candle_history)  
-
-        if len(df) == 0:
+        print(df.describe())
+        if df.empty:
             return
+
+        df["EMA10"] = df["close"].ewm(span=10, adjust=False).mean()
+
 
         df.index = pd.date_range(
             end=datetime.now(),
             periods=len(df),
             freq="min"  # Assuming each candle represents 1 minute
         )
+        mc = mpf.make_marketcolors(
+            up="lime",
+            down="red",
+            edge="inherit",
+            wick="inherit",
+            volume="inherit"
+        )
+        self.style = mpf.make_mpf_style(
+            base_mpf_style="charles",
+            marketcolors=mc,
+            gridstyle="--",
+            facecolor="#1E1E1E",
+            edgecolor="#3E3E42",
+            figcolor="#1E1E1E",
+            gridcolor="#3E3E42",
+            y_on_right=True
+        )
 
         mpf.plot(
             df,
             type="candle",
-            ax=ax,
-           # fig=self.figure,
-            style="charles",
-            ylabel="Price",
+            ax=self.chart,
+            style= self.style,
             volume=False,
-            show_nontrading=True
+            show_nontrading=False,
+            update_width_config=dict(
+                candle_linewidth=1.0,
+                candle_width=0.6, 
+                volume_linewidth=1.0
+                )
         )
-        self.canvas.draw()
-        self.chart.yaxis.tick_right()
-        self.chart.yaxis.set_major_locator(MaxNLocator(8))
-          # Limit to 6 ticks on the y-axis
+
+
+        self.chart.plot(
+            df.index, 
+            df["EMA10"], 
+            color="orange", 
+            label="EMA 10", 
+            linewidth=1.8
+            )
+
+        self.chart.legend(loc="upper left", 
+                          fontsize=8, 
+                          facecolor="#1E1E1E", 
+                          edgecolor="white", 
+                          labelcolor="white"
+                          )
+
+        self.chart.tick_params(
+            
+            axis='x',
+            colors='white',
+            labelsize=10    
+        )
+        self.chart.spines['bottom'].set_color('white')
+        self.chart.spines['left'].set_color('white')
+        self.chart.spines['top'].set_color('white')
+        self.chart.spines['right'].set_color('white')
+
+        self.chart.xaxis.label.set_color('white')
+        self.chart.yaxis.label.set_color('white')
+
+        self.chart.margins(x=0.01,)  # Adjust margins to prevent clipping of tick labels
+
+        self.chart.yaxis.set_major_locator(MaxNLocator(nbins=8))  # Limit to 6 ticks on the y-axis
+
+        for label in self.chart.get_xticklabels():
+            label.set_rotation(45)
+            label.set_horizontalalignment('right')
+            label.set_color("white")
+
+        self.figure.subplots_adjust(
+                left=0.1,
+                right=0.95,
+                top=0.9, 
+                bottom=0.2   
+            )  # Adjust layout to prevent clipping of tick labels
+
+        self.canvas.draw_idle()
+
 
         

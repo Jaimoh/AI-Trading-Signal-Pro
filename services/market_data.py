@@ -9,13 +9,22 @@ def get_market_data():
 
     open_price = last_close
 
-    high_price = round(open_price + random.uniform(0.0001, 0.0010), 5)
-    low_price = round(open_price - random.uniform(0.0001, 0.0010), 5)
-    close_price = round(random.uniform(low_price, high_price), 5)
+    movement = random.uniform(-0.0030, 0.0030)
 
-    rsi = round(random.uniform(20, 80), 1)
+    close_price = round(open_price + movement, 5)
 
-    ema = round(random.uniform(low_price, high_price), 5)
+    high_price = round(max(open_price, close_price) + 
+                       random.uniform(0.0005, 0.0025), 5)
+    low_price = round(min(open_price, close_price) - 
+                      random.uniform(0.0005, 0.0025), 5)
+
+    
+
+
+    rsi = round(random.uniform(25, 75), 1)
+
+    ema = close_price
+
 
     signal = random.choice([
         "🟢 BUY",
@@ -26,10 +35,10 @@ def get_market_data():
     last_close = close_price
 
     return {
-        "open": round(open_price, 5),
-        "high": round(high_price, 5),
-        "low": round(low_price, 5),
-        "close": round(close_price, 5),
+        "open": open_price,
+        "high": high_price,
+        "low": low_price,
+        "close": close_price,
         "rsi": rsi,
         "ema": ema,
         "signal": signal
