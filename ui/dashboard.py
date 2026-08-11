@@ -12,7 +12,10 @@ import time
 #import pyqtgraph as pg
 #from pyqtgraph import PlotWidget
 import pandas as pd
-import mplfinance as mpf
+from matplotlib.patches import Rectangle   
+
+
+
 
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.figure import Figure
@@ -345,103 +348,177 @@ class Dashboard(QWidget):
             self.connection_label.setText("🔴 Auto Refresh OFF")
 
     def update_chart(self):
+        # Clear the figure
         self.figure.clear()
-       # Clear the previous chart
-        self.chart = self.figure.add_subplot(111)
-        self.chart.set_facecolor("#1E1E1E")  
 
-        df = pd.DataFrame(self.candle_history)  
-        print(df.describe())
+        # Create a fresh axis
+        self.chart = self.figure.add_subplot(111)
+        self.chart.set_facecolor("#1E1E1E")
+
+        df = pd.DataFrame(self.candle_history)
+
         if df.empty:
             return
 
+        # ---------------------------
+        # Calculate EMA
+        # ---------------------------
         df["EMA10"] = df["close"].ewm(span=10, adjust=False).mean()
 
+        # Bollinger Bands
+        df["SMA20"] = df["close"].rolling(window=20).mean()
+        df["STD20"] = df["close"].rolling(window=20).std()
 
+        df["UpperBand"] = df["SMA20"] + (2 * df["STD20"])
+        df["LowerBand"] = df["SMA20"] - (2 * df["STD20"])
+
+        # Time index
         df.index = pd.date_range(
             end=datetime.now(),
             periods=len(df),
-            freq="min"  # Assuming each candle represents 1 minute
-        )
-        mc = mpf.make_marketcolors(
-            up="lime",
-            down="red",
-            edge="inherit",
-            wick="inherit",
-            volume="inherit"
-        )
-        self.style = mpf.make_mpf_style(
-            base_mpf_style="charles",
-            marketcolors=mc,
-            gridstyle="--",
-            facecolor="#1E1E1E",
-            edgecolor="#3E3E42",
-            figcolor="#1E1E1E",
-            gridcolor="#3E3E42",
-            y_on_right=True
+            freq="min"
         )
 
-        mpf.plot(
-            df,
-            type="candle",
-            ax=self.chart,
-            style= self.style,
-            volume=False,
-            show_nontrading=False,
-            update_width_config=dict(
-                candle_linewidth=1.0,
-                candle_width=0.6, 
-                volume_linewidth=1.0
-                )
-        )
+        # X positions
+        x = range(len(df))
 
+        # ---------------------------
+        # Draw Candlesticks
+        # ---------------------------
+        candle_width = 0.35
 
-        self.chart.plot(
-            df.index, 
-            df["EMA10"], 
-            color="orange", 
-            label="EMA 10", 
-            linewidth=1.8
+        for i, (_, row) in enumerate(df.iterrows()):
+
+            open_price = row["open"]
+            high_price = row["high"]
+            low_price = row["low"]
+            close_price = row["close"]
+
+            color = "lime" if close_price >= open_price else "red"
+
+            # Wick
+            self.chart.plot(
+                [i, i],
+                [low_price, high_price],
+                color=color,
+                linewidth=1
             )
 
-        self.chart.legend(loc="upper left", 
-                          fontsize=8, 
-                          facecolor="#1E1E1E", 
-                          edgecolor="white", 
-                          labelcolor="white"
-                          )
+            # Candle Body
+            body_bottom = min(open_price, close_price)
+            body_height = abs(close_price - open_price)
 
-        self.chart.tick_params(
-            
-            axis='x',
-            colors='white',
-            labelsize=10    
+            if body_height < 0.00001:
+                body_height = 0.00001
+
+            rect = Rectangle(
+                (i - candle_width/2, body_bottom),
+                candle_width,
+                body_height,
+                facecolor=color,
+                edgecolor=color
+            )
+
+            self.chart.add_patch(rect)
+
+        # ---------------------------
+        # EMA Line
+        # ---------------------------
+        self.chart.plot(
+            x,
+            df["EMA10"],
+            color="orange",
+            linewidth=2.5,
+            label="EMA 10"
         )
-        self.chart.spines['bottom'].set_color('white')
-        self.chart.spines['left'].set_color('white')
-        self.chart.spines['top'].set_color('white')
-        self.chart.spines['right'].set_color('white')
+        self.chart.plot(
+            x,
+            df["UpperBand"],
+            color="deepskyblue",
+            linewidth=1,
+            linestyle="--",
+            label="Upper Band"
+        )
 
-        self.chart.xaxis.label.set_color('white')
-        self.chart.yaxis.label.set_color('white')
+        self.chart.plot(
+            x,
+            df["LowerBand"],
+            color="deepskyblue",
+            linewidth=1,
+            linestyle="--",
+            label="Lower Band"
+        )
 
-        self.chart.margins(x=0.01,)  # Adjust margins to prevent clipping of tick labels
+        self.chart.fill_between(
+            x,
+            df["UpperBand"],
+            df["LowerBand"],
+            color="deepskyblue",
+            alpha=0.08
+        )
+        padding = (df["high"].max() - df["low"].min()) * 0.15
 
-        self.chart.yaxis.set_major_locator(MaxNLocator(nbins=8))  # Limit to 6 ticks on the y-axis
+        self.chart.set_ylim(
+            df["low"].min() - padding,
+            df["high"].max() + padding
+        )
 
-        for label in self.chart.get_xticklabels():
-            label.set_rotation(45)
-            label.set_horizontalalignment('right')
-            label.set_color("white")
+        # ---------------------------
+        # X Axis
+        # ---------------------------
+        self.chart.set_xticks(list(x))
+        self.chart.set_xticklabels(
+            [t.strftime("%H:%M") for t in df.index],
+            rotation=45,
+            color="white"
+        )
 
-        self.figure.subplots_adjust(
-                left=0.1,
-                right=0.95,
-                top=0.9, 
-                bottom=0.2   
-            )  # Adjust layout to prevent clipping of tick labels
+        # ---------------------------
+        # Y Axis
+        # ---------------------------
+        self.chart.tick_params(axis="y", colors="white")
+        self.chart.tick_params(axis="x", colors="white")
+
+        self.chart.set_ylabel("Price", color="white")
+
+        # ---------------------------
+        # Grid
+        # ---------------------------
+        self.chart.grid(
+            True,
+            linestyle="--",
+            alpha=0.3,
+            color="#404040"
+        )
+
+        # ---------------------------
+        # Spines
+        # ---------------------------
+        self.chart.spines["top"].set_visible(False)
+        self.chart.spines["right"].set_visible(False)
+
+        self.chart.spines["left"].set_color("#555")
+        self.chart.spines["bottom"].set_color("#555")
+            
+
+        # ---------------------------
+        # Legend
+        # ---------------------------
+        self.chart.legend(
+            loc="upper left",
+            frameon=False,
+            labelcolor="orange",
+            fontsize=9
+           
+        )
+
+
+
+        # ---------------------------
+        # Layout
+        # ---------------------------
+        self.figure.tight_layout()
 
         self.canvas.draw_idle()
 
-
-        
+            
