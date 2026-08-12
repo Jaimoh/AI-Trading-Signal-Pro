@@ -12,7 +12,9 @@ import time
 #import pyqtgraph as pg
 #from pyqtgraph import PlotWidget
 import pandas as pd
-from matplotlib.patches import Rectangle   
+from matplotlib.patches import Rectangle
+import numpy as np
+
 
 
 
@@ -279,8 +281,7 @@ class Dashboard(QWidget):
          high_price = market["high"]
          low_price = market["low"]
          close_price = market["close"]
-         rsi = market["rsi"]
-         ema = market["ema"]
+         ema = None
          signal = market["signal"]
 
          self.candle_history.append({
@@ -289,16 +290,56 @@ class Dashboard(QWidget):
              "low": low_price,
              "close": close_price
          })
+         # Calculate RSI(14) from candle closing prices
+         closes = pd.Series(
+            [candle["close"] for candle in self.candle_history]
+        )
 
-         if len(self.candle_history) > 40:
+         if len(closes) >= 15:
+            delta = closes.diff()
+
+            gains = delta.clip(lower=0)
+            losses = -delta.clip(upper=0)
+
+            avg_gain = gains.rolling(window=14).mean()
+            avg_loss = losses.rolling(window=14).mean()
+
+            rs = avg_gain / avg_loss.replace(0, np.nan)
+
+            rsi_series = 100 - (100 / (1 + rs))
+
+            rsi = rsi_series.iloc[-1]
+
+            if pd.isna(rsi):
+                rsi = 50.0
+         else:
+            rsi = 50.0
+
+         rsi = round(float(rsi), 1)
+
+         if len(self.candle_history) > 100:
              self.candle_history.pop(0)
+
+        # -----------------------------
+            # Calculate EMA 10
+            # -----------------------------
+         prices = pd.Series(
+                [candle["close"] for candle in self.candle_history]
+            )
+
+         ema_series = prices.ewm(
+                span=10,
+                adjust=False
+            ).mean()
+
+         ema = ema_series.iloc[-1]
 
 
 
 
          self.price_label.setText(f"{close_price:.5f}")
          self.rsi_label.setText(str(rsi))
-         self.ema_label.setText(str(ema))
+         self.ema_label.setText(f"{ema:.5f}")
          self.signal_label.setText(signal)
          asset = self.asset_box.currentText()
          timeframe = self.time_box.currentText()

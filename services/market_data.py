@@ -21,7 +21,7 @@ def get_market_data():
     
 
 
-    rsi = round(random.uniform(25, 75), 1)
+   
 
     ema = close_price
 
@@ -39,7 +39,6 @@ def get_market_data():
         "high": high_price,
         "low": low_price,
         "close": close_price,
-        "rsi": rsi,
         "ema": ema,
         "signal": signal
     }
