@@ -40,6 +40,7 @@ def get_market_data():
         "low": low_price,
         "close": close_price,
         "ema": ema,
+        "rsi": None,
         "signal": signal
     }
 

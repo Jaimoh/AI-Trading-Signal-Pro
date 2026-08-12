@@ -14,6 +14,8 @@ import time
 import pandas as pd
 from matplotlib.patches import Rectangle
 import numpy as np
+from services.ai_engine import generate_signal
+
 
 
 
@@ -281,8 +283,13 @@ class Dashboard(QWidget):
          high_price = market["high"]
          low_price = market["low"]
          close_price = market["close"]
-         ema = None
-         signal = market["signal"]
+         ema = 0.0
+         rsi = 50.0
+         signal, confidence = generate_signal(
+            close_price,
+            ema,
+            rsi
+         )
 
          self.candle_history.append({
              "open": open_price,
@@ -316,6 +323,7 @@ class Dashboard(QWidget):
             rsi = 50.0
 
          rsi = round(float(rsi), 1)
+         
 
          if len(self.candle_history) > 100:
              self.candle_history.pop(0)
@@ -325,6 +333,7 @@ class Dashboard(QWidget):
             # -----------------------------
          prices = pd.Series(
                 [candle["close"] for candle in self.candle_history]
+                
             )
 
          ema_series = prices.ewm(
@@ -334,13 +343,59 @@ class Dashboard(QWidget):
 
          ema = ema_series.iloc[-1]
 
+         closes = prices
+
+         if len(closes) >= 15:
+
+            delta = closes.diff()
+
+            gains = delta.clip(lower=0)
+            losses = -delta.clip(upper=0)
+
+            avg_gain = gains.rolling(14).mean()
+            avg_loss = losses.rolling(14).mean()
+
+            if avg_loss.iloc[-1] == 0:
+                    rsi = 100.0
+            else:
+                rs = avg_gain.iloc[-1] / avg_loss.iloc[-1]
+                rsi = 100 - (100 / (1 + rs))
+
+            if pd.isna(rsi):
+                 rsi = 50.0
+
+         else:
+            rsi = 50.0
+
+         rsi = round(float(rsi), 1)
 
 
 
          self.price_label.setText(f"{close_price:.5f}")
-         self.rsi_label.setText(str(rsi))
+         self.rsi_label.setText(f"{rsi:.1f}")
          self.ema_label.setText(f"{ema:.5f}")
-         self.signal_label.setText(signal)
+         self.signal_label.setText(f"{signal} ({confidence}%)")
+
+         if "BUY" in signal:
+            self.signal_label.setStyleSheet("""
+                font-size:24px;
+                font-weight:bold;
+                color:#00FF66;
+            """)
+
+         elif "SELL" in signal:
+            self.signal_label.setStyleSheet("""
+                font-size:24px;
+                font-weight:bold;
+                color:#FF4444;
+            """)
+
+         else:
+            self.signal_label.setStyleSheet("""
+                font-size:24px;
+                font-weight:bold;
+                color:#FFD700;
+            """)
          asset = self.asset_box.currentText()
          timeframe = self.time_box.currentText()
          history_service.save_signal(
