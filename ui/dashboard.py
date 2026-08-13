@@ -319,6 +319,24 @@ class Dashboard(QWidget):
         ema = float(ema_series.iloc[-1])
 
         # --------------------------------
+        # Calculate Bollinger Bands 20
+        # --------------------------------
+        sma20 = prices.rolling(window=20).mean()
+        std20 = prices.rolling(window=20).std()
+
+        if len(prices) >= 20:
+            upper_band = float(
+                sma20.iloc[-1] + (2 * std20.iloc[-1])
+            )
+
+            lower_band = float(
+                sma20.iloc[-1] - (2 * std20.iloc[-1])
+            )
+        else:
+            upper_band = None
+            lower_band = None
+
+        # --------------------------------
         # Calculate RSI 14
         # --------------------------------
         if len(prices) >= 15:
@@ -346,13 +364,27 @@ class Dashboard(QWidget):
 
         rsi = round(float(rsi), 1)
 
+        print(f"Price: {close_price:.5f}")
+        print(f"EMA: {ema:.5f}")
+        print(f"RSI: {rsi:.1f}")
+
+        if upper_band is not None:
+            print(f"Upper Band: {upper_band:.5f}")
+            print(f"Lower Band: {lower_band:.5f}")
+        else:
+            print("Bollinger Bands: waiting for 20 candles")
+
+        print("----------------")
+
         # --------------------------------
         # Generate trading signal
         # --------------------------------
         signal, confidence = generate_signal(
             close_price,
             ema,
-            rsi
+            rsi,
+            upper_band,
+            lower_band
         )
 
         # --------------------------------
