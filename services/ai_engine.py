@@ -1,27 +1,53 @@
 def generate_signal(price, ema, rsi):
 
-    confidence = 50
+    # --------------------------------
+    # STRONG BUY
+    # --------------------------------
 
-    if price > ema:
-        confidence += 20
-    else:
-        confidence -= 20
+    if price > ema and 55 <= rsi < 70:
 
-    if rsi < 30:
-        confidence += 25
-
-    elif rsi > 70:
-        confidence -= 25
-
-    confidence = max(0, min(100, confidence))
-
-    if confidence >= 70:
         signal = "🟢 BUY"
+        confidence = 80
 
-    elif confidence <= 30:
+
+    # --------------------------------
+    # STRONG SELL
+    # --------------------------------
+
+    elif price < ema and 30 < rsi <= 45:
+
         signal = "🔴 SELL"
+        confidence = 80
+
+
+    # --------------------------------
+    # OVERSOLD REVERSAL
+    # --------------------------------
+
+    elif rsi <= 30 and price > ema:
+
+        signal = "🟢 BUY"
+        confidence = 70
+
+
+    # --------------------------------
+    # OVERBOUGHT REVERSAL WARNING
+    # --------------------------------
+
+    elif rsi >= 70 and price < ema:
+
+        signal = "🔴 SELL"
+        confidence = 70
+
+
+    # --------------------------------
+    # EVERYTHING ELSE
+    # --------------------------------
 
     else:
+
         signal = "🟡 HOLD"
+        confidence = 50
+
 
     return signal, confidence

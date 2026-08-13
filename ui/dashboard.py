@@ -233,7 +233,7 @@ class Dashboard(QWidget):
         self.timer.start(1000)
         self.refresh_timer = QTimer()
         self.refresh_timer.timeout.connect(self.refresh_dashboard)
-        self.refresh_timer.start(6000)  # Refresh every minute
+        self.refresh_timer.start(5000)  # Refresh every minute
 
         self.update_clock()
         QTimer.singleShot(200, self.refresh_dashboard)  # Initial refresh when the dashboard is created
@@ -274,36 +274,56 @@ class Dashboard(QWidget):
         card.setLayout(layout)
         return card, value_label
     def refresh_dashboard(self):
-         self.connection_label.setText("🟡 Updating...")
-         
-    
-         market = get_market_data()
+        self.connection_label.setText("🟡 Updating...")
 
-         open_price = market["open"]
-         high_price = market["high"]
-         low_price = market["low"]
-         close_price = market["close"]
-         ema = 0.0
-         rsi = 50.0
-         signal, confidence = generate_signal(
-            close_price,
-            ema,
-            rsi
-         )
+        # --------------------------------
+        # Get market data
+        # --------------------------------
+        market = get_market_data()
 
-         self.candle_history.append({
-             "open": open_price,
-             "high": high_price,
-             "low": low_price,
-             "close": close_price
-         })
-         # Calculate RSI(14) from candle closing prices
-         closes = pd.Series(
-            [candle["close"] for candle in self.candle_history]
+        open_price = market["open"]
+        high_price = market["high"]
+        low_price = market["low"]
+        close_price = market["close"]
+
+        # --------------------------------
+        # Add new candle
+        # --------------------------------
+        self.candle_history.append({
+            "open": open_price,
+            "high": high_price,
+            "low": low_price,
+            "close": close_price
+        })
+
+        # Keep maximum of 100 candles
+        if len(self.candle_history) > 100:
+            self.candle_history.pop(0)
+
+        # --------------------------------
+        # Create price series
+        # --------------------------------
+        prices = pd.Series(
+            [candle["close"] for candle in self.candle_history],
+            dtype="float64"
         )
 
-         if len(closes) >= 15:
-            delta = closes.diff()
+        # --------------------------------
+        # Calculate EMA 10
+        # --------------------------------
+        ema_series = prices.ewm(
+            span=10,
+            adjust=False
+        ).mean()
+
+        ema = float(ema_series.iloc[-1])
+
+        # --------------------------------
+        # Calculate RSI 14
+        # --------------------------------
+        if len(prices) >= 15:
+
+            delta = prices.diff()
 
             gains = delta.clip(lower=0)
             losses = -delta.clip(upper=0)
@@ -311,94 +331,83 @@ class Dashboard(QWidget):
             avg_gain = gains.rolling(window=14).mean()
             avg_loss = losses.rolling(window=14).mean()
 
-            rs = avg_gain / avg_loss.replace(0, np.nan)
-
-            rsi_series = 100 - (100 / (1 + rs))
-
-            rsi = rsi_series.iloc[-1]
-
-            if pd.isna(rsi):
-                rsi = 50.0
-         else:
-            rsi = 50.0
-
-         rsi = round(float(rsi), 1)
-         
-
-         if len(self.candle_history) > 100:
-             self.candle_history.pop(0)
-
-        # -----------------------------
-            # Calculate EMA 10
-            # -----------------------------
-         prices = pd.Series(
-                [candle["close"] for candle in self.candle_history]
-                
-            )
-
-         ema_series = prices.ewm(
-                span=10,
-                adjust=False
-            ).mean()
-
-         ema = ema_series.iloc[-1]
-
-         closes = prices
-
-         if len(closes) >= 15:
-
-            delta = closes.diff()
-
-            gains = delta.clip(lower=0)
-            losses = -delta.clip(upper=0)
-
-            avg_gain = gains.rolling(14).mean()
-            avg_loss = losses.rolling(14).mean()
-
             if avg_loss.iloc[-1] == 0:
-                    rsi = 100.0
+                rsi = 100.0
             else:
                 rs = avg_gain.iloc[-1] / avg_loss.iloc[-1]
                 rsi = 100 - (100 / (1 + rs))
 
             if pd.isna(rsi):
-                 rsi = 50.0
+                rsi = 50.0
 
-         else:
+        else:
+            # Not enough candles yet
             rsi = 50.0
 
-         rsi = round(float(rsi), 1)
+        rsi = round(float(rsi), 1)
 
+        # --------------------------------
+        # Generate trading signal
+        # --------------------------------
+        signal, confidence = generate_signal(
+            close_price,
+            ema,
+            rsi
+        )
 
+        # --------------------------------
+        # Update dashboard cards
+        # --------------------------------
+        self.price_label.setText(
+            f"{close_price:.5f}"
+        )
 
-         self.price_label.setText(f"{close_price:.5f}")
-         self.rsi_label.setText(f"{rsi:.1f}")
-         self.ema_label.setText(f"{ema:.5f}")
-         self.signal_label.setText(f"{signal} ({confidence}%)")
+        self.rsi_label.setText(
+            f"{rsi:.1f}"
+        )
 
-         if "BUY" in signal:
+        self.ema_label.setText(
+            f"{ema:.5f}"
+        )
+
+        self.signal_label.setText(
+            f"{signal} ({confidence}%)"
+        )
+
+        # --------------------------------
+        # Signal color
+        # --------------------------------
+        if "BUY" in signal:
+
             self.signal_label.setStyleSheet("""
                 font-size:24px;
                 font-weight:bold;
                 color:#00FF66;
             """)
 
-         elif "SELL" in signal:
+        elif "SELL" in signal:
+
             self.signal_label.setStyleSheet("""
                 font-size:24px;
                 font-weight:bold;
                 color:#FF4444;
             """)
 
-         else:
+        else:
+
             self.signal_label.setStyleSheet("""
                 font-size:24px;
                 font-weight:bold;
                 color:#FFD700;
             """)
-         asset = self.asset_box.currentText()
-         timeframe = self.time_box.currentText()
-         history_service.save_signal(
+
+        # --------------------------------
+        # Save signal to database
+        # --------------------------------
+        asset = self.asset_box.currentText()
+        timeframe = self.time_box.currentText()
+
+        history_service.save_signal(
             self.user["id"],
             asset,
             timeframe,
@@ -406,9 +415,19 @@ class Dashboard(QWidget):
             close_price,
             rsi,
             ema
-         )
-         self.connection_label.setText("🟢 Connected")
-         self.update_chart()
+        )
+
+        # --------------------------------
+        # Update connection status
+        # --------------------------------
+        self.connection_label.setText(
+            "🟢 Connected"
+        )
+
+        # --------------------------------
+        # Update chart
+        # --------------------------------
+        self.update_chart()
 
     def update_clock(self):
 
@@ -444,43 +463,74 @@ class Dashboard(QWidget):
             self.connection_label.setText("🔴 Auto Refresh OFF")
 
     def update_chart(self):
-        # Clear the figure
+
+        # --------------------------------
+        # Clear previous chart
+        # --------------------------------
         self.figure.clear()
 
-        # Create a fresh axis
         self.chart = self.figure.add_subplot(111)
         self.chart.set_facecolor("#1E1E1E")
 
+        # --------------------------------
+        # Need at least 2 candles
+        # --------------------------------
+        if len(self.candle_history) < 2:
+            return
+
+        # --------------------------------
+        # Create DataFrame
+        # --------------------------------
         df = pd.DataFrame(self.candle_history)
 
         if df.empty:
             return
 
-        # ---------------------------
-        # Calculate EMA
-        # ---------------------------
-        df["EMA10"] = df["close"].ewm(span=10, adjust=False).mean()
+        # --------------------------------
+        # EMA 10
+        # MUST match refresh_dashboard()
+        # --------------------------------
+        df["EMA10"] = df["close"].ewm(
+            span=10,
+            adjust=False
+        ).mean()
 
+        # --------------------------------
         # Bollinger Bands
-        df["SMA20"] = df["close"].rolling(window=20).mean()
-        df["STD20"] = df["close"].rolling(window=20).std()
+        # --------------------------------
+        df["SMA20"] = df["close"].rolling(
+            window=20
+        ).mean()
 
-        df["UpperBand"] = df["SMA20"] + (2 * df["STD20"])
-        df["LowerBand"] = df["SMA20"] - (2 * df["STD20"])
+        df["STD20"] = df["close"].rolling(
+            window=20
+        ).std()
 
+        df["UpperBand"] = (
+            df["SMA20"] + (2 * df["STD20"])
+        )
+
+        df["LowerBand"] = (
+            df["SMA20"] - (2 * df["STD20"])
+        )
+
+        # --------------------------------
         # Time index
+        # --------------------------------
         df.index = pd.date_range(
             end=datetime.now(),
             periods=len(df),
             freq="min"
         )
 
+        # --------------------------------
         # X positions
-        x = range(len(df))
+        # --------------------------------
+        x = list(range(len(df)))
 
-        # ---------------------------
-        # Draw Candlesticks
-        # ---------------------------
+        # --------------------------------
+        # Draw candlesticks
+        # --------------------------------
         candle_width = 0.35
 
         for i, (_, row) in enumerate(df.iterrows()):
@@ -490,9 +540,17 @@ class Dashboard(QWidget):
             low_price = row["low"]
             close_price = row["close"]
 
-            color = "lime" if close_price >= open_price else "red"
+            # Green candle = bullish
+            # Red candle = bearish
+            color = (
+                "lime"
+                if close_price >= open_price
+                else "red"
+            )
 
+            # ----------------------------
             # Wick
+            # ----------------------------
             self.chart.plot(
                 [i, i],
                 [low_price, high_price],
@@ -500,15 +558,26 @@ class Dashboard(QWidget):
                 linewidth=1
             )
 
-            # Candle Body
-            body_bottom = min(open_price, close_price)
-            body_height = abs(close_price - open_price)
+            # ----------------------------
+            # Candle body
+            # ----------------------------
+            body_bottom = min(
+                open_price,
+                close_price
+            )
+
+            body_height = abs(
+                close_price - open_price
+            )
 
             if body_height < 0.00001:
                 body_height = 0.00001
 
             rect = Rectangle(
-                (i - candle_width/2, body_bottom),
+                (
+                    i - candle_width / 2,
+                    body_bottom
+                ),
                 candle_width,
                 body_height,
                 facecolor=color,
@@ -517,9 +586,9 @@ class Dashboard(QWidget):
 
             self.chart.add_patch(rect)
 
-        # ---------------------------
-        # EMA Line
-        # ---------------------------
+        # --------------------------------
+        # EMA 10
+        # --------------------------------
         self.chart.plot(
             x,
             df["EMA10"],
@@ -527,6 +596,10 @@ class Dashboard(QWidget):
             linewidth=2.5,
             label="EMA 10"
         )
+
+        # --------------------------------
+        # Upper Bollinger Band
+        # --------------------------------
         self.chart.plot(
             x,
             df["UpperBand"],
@@ -536,6 +609,9 @@ class Dashboard(QWidget):
             label="Upper Band"
         )
 
+        # --------------------------------
+        # Lower Bollinger Band
+        # --------------------------------
         self.chart.plot(
             x,
             df["LowerBand"],
@@ -545,41 +621,70 @@ class Dashboard(QWidget):
             label="Lower Band"
         )
 
+        # --------------------------------
+        # Fill Bollinger Band area
+        # --------------------------------
         self.chart.fill_between(
             x,
-            df["UpperBand"],
-            df["LowerBand"],
+            df["UpperBand"].values,
+            df["LowerBand"].values,
             color="deepskyblue",
             alpha=0.08
         )
-        padding = (df["high"].max() - df["low"].min()) * 0.15
+
+        # --------------------------------
+        # Y-axis padding
+        # --------------------------------
+        price_range = (
+            df["high"].max()
+            - df["low"].min()
+        )
+
+        if price_range == 0:
+            price_range = 0.001
+
+        padding = price_range * 0.15
 
         self.chart.set_ylim(
             df["low"].min() - padding,
             df["high"].max() + padding
         )
 
-        # ---------------------------
-        # X Axis
-        # ---------------------------
-        self.chart.set_xticks(list(x))
+        # --------------------------------
+        # X-axis
+        # --------------------------------
+        self.chart.set_xticks(x)
+
         self.chart.set_xticklabels(
-            [t.strftime("%H:%M") for t in df.index],
+            [
+                t.strftime("%H:%M")
+                for t in df.index
+            ],
             rotation=45,
             color="white"
         )
 
-        # ---------------------------
-        # Y Axis
-        # ---------------------------
-        self.chart.tick_params(axis="y", colors="white")
-        self.chart.tick_params(axis="x", colors="white")
+        # --------------------------------
+        # Y-axis
+        # --------------------------------
+        self.chart.tick_params(
+            axis="y",
+            colors="white"
+        )
 
-        self.chart.set_ylabel("Price", color="white")
+        self.chart.tick_params(
+            axis="x",
+            colors="white"
+        )
 
-        # ---------------------------
+        self.chart.set_ylabel(
+            "Price",
+            color="white"
+        )
+
+        # --------------------------------
         # Grid
-        # ---------------------------
+        # --------------------------------
         self.chart.grid(
             True,
             linestyle="--",
@@ -587,34 +692,30 @@ class Dashboard(QWidget):
             color="#404040"
         )
 
-        # ---------------------------
+        # --------------------------------
         # Spines
-        # ---------------------------
+        # --------------------------------
         self.chart.spines["top"].set_visible(False)
         self.chart.spines["right"].set_visible(False)
 
         self.chart.spines["left"].set_color("#555")
         self.chart.spines["bottom"].set_color("#555")
-            
 
-        # ---------------------------
+        # --------------------------------
         # Legend
-        # ---------------------------
+        # --------------------------------
         self.chart.legend(
             loc="upper left",
             frameon=False,
-            labelcolor="orange",
             fontsize=9
-           
         )
 
-
-
-        # ---------------------------
+        # --------------------------------
         # Layout
-        # ---------------------------
+        # --------------------------------
         self.figure.tight_layout()
 
+        # --------------------------------
+        # Refresh canvas
+        # --------------------------------
         self.canvas.draw_idle()
-
-            
