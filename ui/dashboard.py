@@ -364,17 +364,7 @@ class Dashboard(QWidget):
 
         rsi = round(float(rsi), 1)
 
-        print(f"Price: {close_price:.5f}")
-        print(f"EMA: {ema:.5f}")
-        print(f"RSI: {rsi:.1f}")
-
-        if upper_band is not None:
-            print(f"Upper Band: {upper_band:.5f}")
-            print(f"Lower Band: {lower_band:.5f}")
-        else:
-            print("Bollinger Bands: waiting for 20 candles")
-
-        print("----------------")
+       
 
         # --------------------------------
         # Generate trading signal
@@ -386,6 +376,18 @@ class Dashboard(QWidget):
             upper_band,
             lower_band
         )
+
+        print(f"Price: {close_price:.5f}")
+        print(f"EMA: {ema:.5f}")
+        print(f"RSI: {rsi:.1f}")
+   
+        if upper_band is not None:
+            print(f"Upper Band: {upper_band:.5f}")
+            print(f"Lower Band: {lower_band:.5f}")
+        else:
+            print("Bollinger Bands: waiting for 20 candles")
+   
+        print("----------------")
 
         # --------------------------------
         # Update dashboard cards

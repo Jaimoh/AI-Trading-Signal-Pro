@@ -1,64 +1,60 @@
-def generate_signal(price, ema, rsi, upper_band, lower_band):
+def generate_signal(price, ema, rsi, upper_band=None, lower_band=None):
 
-    # --------------------------------
-    # Not enough Bollinger data
-    # --------------------------------
-    if upper_band is None or lower_band is None:
-        return "🟡 HOLD", 50
+    score = 0
 
-    # --------------------------------
-    # BUY confirmations
-    # --------------------------------
-    buy_score = 0
+    # =================================
+    # 1. EMA TREND
+    # =================================
 
-    # Price above EMA = bullish trend
     if price > ema:
-        buy_score += 1
+        score += 1
 
-    # RSI bullish momentum
-    if 50 < rsi < 70:
-        buy_score += 1
+    elif price < ema:
+        score -= 1
 
-    # Price near/below lower Bollinger Band
-    if price <= lower_band:
-        buy_score += 1
 
-    # --------------------------------
-    # SELL confirmations
-    # --------------------------------
-    sell_score = 0
+    # =================================
+    # 2. RSI MOMENTUM
+    # =================================
 
-    # Price below EMA = bearish trend
-    if price < ema:
-        sell_score += 1
+    if 55 <= rsi < 70:
+        score += 1
 
-    # RSI bearish momentum
-    if 30 < rsi < 50:
-        sell_score += 1
+    elif 30 < rsi <= 45:
+        score -= 1
 
-    # Price near/above upper Bollinger Band
-    if price >= upper_band:
-        sell_score += 1
+    elif rsi <= 30:
+        score += 1
 
-    # --------------------------------
-    # Determine signal
-    # --------------------------------
-    if buy_score >= 3:
+    elif rsi >= 70:
+        score -= 1
 
-        signal = "🟢 BUY"
-        confidence = 90
 
-    elif sell_score >= 3:
+    # =================================
+    # 3. BOLLINGER BANDS
+    # =================================
 
-        signal = "🔴 SELL"
-        confidence = 90
+    if upper_band is not None and lower_band is not None:
 
-    elif buy_score == 2:
+        if price <= lower_band:
+            # Price near/below lower band
+            score += 1
+
+        elif price >= upper_band:
+            # Price near/above upper band
+            score -= 1
+
+
+    # =================================
+    # FINAL SIGNAL
+    # =================================
+
+    if score >= 2:
 
         signal = "🟢 BUY"
         confidence = 70
 
-    elif sell_score == 2:
+    elif score <= -2:
 
         signal = "🔴 SELL"
         confidence = 70
@@ -67,5 +63,6 @@ def generate_signal(price, ema, rsi, upper_band, lower_band):
 
         signal = "🟡 HOLD"
         confidence = 50
+
 
     return signal, confidence
