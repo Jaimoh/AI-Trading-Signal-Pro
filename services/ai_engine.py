@@ -1,68 +1,68 @@
 def generate_signal(price, ema, rsi, upper_band=None, lower_band=None):
 
-    score = 0
+    # --------------------------------
+    # STRONG BUY
+    # --------------------------------
+    if (
+        price > ema
+        and 55 <= rsi < 70
+        and (upper_band is None or price < upper_band)
+    ):
+        signal = "🟢 BUY"
+        confidence = 80
 
-    # =================================
-    # 1. EMA TREND
-    # =================================
+    # --------------------------------
+    # STRONG SELL
+    # --------------------------------
+    elif (
+        price < ema
+        and 30 < rsi <= 45
+        and (lower_band is None or price > lower_band)
+    ):
+        signal = "🔴 SELL"
+        confidence = 80
 
-    if price > ema:
-        score += 1
+    # --------------------------------
+    # OVERSOLD REVERSAL
+    # --------------------------------
+    elif (
+        rsi <= 30
+        and price > ema
+        and (lower_band is None or price <= lower_band * 1.01)
+    ):
+        signal = "🟢 BUY"
+        confidence = 75
 
-    elif price < ema:
-        score -= 1
+    # --------------------------------
+    # OVERBOUGHT WARNING
+    # --------------------------------
+    elif (
+        rsi >= 70
+        and price < ema
+        and (upper_band is None or price >= upper_band * 0.99)
+    ):
+        signal = "🔴 SELL"
+        confidence = 75
 
-
-    # =================================
-    # 2. RSI MOMENTUM
-    # =================================
-
-    if 55 <= rsi < 70:
-        score += 1
-
-    elif 30 < rsi <= 45:
-        score -= 1
-
-    elif rsi <= 30:
-        score += 1
-
-    elif rsi >= 70:
-        score -= 1
-
-
-    # =================================
-    # 3. BOLLINGER BANDS
-    # =================================
-
-    if upper_band is not None and lower_band is not None:
-
-        if price <= lower_band:
-            # Price near/below lower band
-            score += 1
-
-        elif price >= upper_band:
-            # Price near/above upper band
-            score -= 1
-
-
-    # =================================
-    # FINAL SIGNAL
-    # =================================
-
-    if score >= 2:
-
+    # --------------------------------
+    # TREND BUY
+    # --------------------------------
+    elif price > ema and rsi >= 50:
         signal = "🟢 BUY"
         confidence = 70
 
-    elif score <= -2:
-
+    # --------------------------------
+    # TREND SELL
+    # --------------------------------
+    elif price < ema and rsi <= 50:
         signal = "🔴 SELL"
         confidence = 70
 
+    # --------------------------------
+    # EVERYTHING ELSE
+    # --------------------------------
     else:
-
         signal = "🟡 HOLD"
         confidence = 50
-
 
     return signal, confidence
